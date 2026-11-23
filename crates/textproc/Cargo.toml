@@ -97,3 +97,7 @@ path = "tests/editing/time_date.rs"
 [[test]]
 name = "properties"
 path = "tests/properties.rs"
+
+# Playground's browser build (patches/notepad.yaml): the files.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+notepad-playground = { path = "../../notepad-playground" }

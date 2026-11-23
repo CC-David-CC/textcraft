@@ -20,9 +20,11 @@ use egui::Context;
 
 use crate::clock;
 use crate::ui::editor;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::ui::state::FileDialog;
 use crate::ui::state::{
-    DocKind, FileDialog, FileDialogMode, OpenBehavior, ParagraphStyle, PendingReplace, Prompt,
-    SaveThen, Shell, SpellDialog, Tab,
+    DocKind, FileDialogMode, OpenBehavior, ParagraphStyle, PendingReplace, Prompt, SaveThen, Shell,
+    SpellDialog, Tab,
 };
 use nc_commands::CommandId;
 use nc_core::Clipboard;
@@ -473,7 +475,15 @@ fn match_capitalisation(original: &str, replacement: &str) -> String {
 
 /// Opens the Open dialog (`File ▸ Open`, `Ctrl+O`).
 pub fn open_file_dialog(shell: &mut Shell) {
-    shell.file_dialog = Some(FileDialog::open());
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        shell.file_dialog = Some(FileDialog::open());
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let _ = shell;
+        super::web::open_dialog();
+    }
 }
 
 /// Saves the active document (`File ▸ Save`, `Ctrl+S`).
@@ -511,17 +521,25 @@ pub fn save_all(shell: &mut Shell) {
 
 /// Opens Save As for `tab`, named after the file it already has, or blank.
 fn open_save_as(shell: &mut Shell, tab: usize) {
-    let Some(document) = shell.tabs.get(tab) else {
-        return;
-    };
-    let name = if document.file.has_path() {
-        document.title()
-    } else {
-        String::new()
-    };
-    let encoding = document.file.encoding();
-    let bom = document.file.has_bom();
-    shell.file_dialog = Some(FileDialog::save_as(tab, name, encoding, bom));
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let Some(document) = shell.tabs.get(tab) else {
+            return;
+        };
+        let name = if document.file.has_path() {
+            document.title()
+        } else {
+            String::new()
+        };
+        shell.file_dialog = Some(FileDialog::save_as(
+            tab,
+            name,
+            document.file.encoding(),
+            document.file.has_bom(),
+        ));
+    }
+    #[cfg(target_arch = "wasm32")]
+    super::web::save_as_dialog(shell, tab);
 }
 
 /// Saves `tab`, and carries out `then` once the write succeeds — closing the tab
@@ -568,27 +586,32 @@ pub fn save_tab(shell: &mut Shell, tab: usize, then: SaveThen) {
         return;
     }
 
-    let name = shell
-        .tabs
-        .get(tab)
-        .map(|tab| tab.title())
-        .unwrap_or_default();
-    match shell.tabs[tab].file.save() {
-        Ok(_) => finish_save(shell, tab),
-        Err(_) => {
-            // The write failed, so nothing can follow it: the close or the
-            // replacement is dropped rather than waiting for a later Save of this
-            // tab, which is a new request with its own intent.
-            if shell.save_then.is_some_and(|(saved, _)| saved == tab) {
-                shell.save_then = None;
+    #[cfg(target_arch = "wasm32")]
+    super::web::save(shell, tab, false);
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let name = shell
+            .tabs
+            .get(tab)
+            .map(|tab| tab.title())
+            .unwrap_or_default();
+        match shell.tabs[tab].file.save() {
+            Ok(_) => finish_save(shell, tab),
+            Err(_) => {
+                // The write failed, so nothing can follow it: the close or the
+                // replacement is dropped rather than waiting for a later Save of this
+                // tab, which is a new request with its own intent.
+                if shell.save_then.is_some_and(|(saved, _)| saved == tab) {
+                    shell.save_then = None;
+                }
+                shell.notification = Some(format!("Could not save \"{name}\""));
             }
-            shell.notification = Some(format!("Could not save \"{name}\""));
         }
     }
 }
 
 /// Carries out what a just-written save was for ([`SaveThen`]).
-fn finish_save(shell: &mut Shell, tab: usize) {
+pub(super) fn finish_save(shell: &mut Shell, tab: usize) {
     let Some((saved, then)) = shell.save_then.take() else {
         return;
     };
@@ -698,7 +721,10 @@ pub fn pump(shell: &mut Shell, ctx: &Context) {
     shell.window_focused = focused;
 
     if std::mem::take(&mut shell.exit_pending) {
+        #[cfg(not(target_arch = "wasm32"))]
         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        #[cfg(target_arch = "wasm32")]
+        notepad_playground::call("close", &[]);
     }
 }
 
@@ -797,6 +823,12 @@ pub(crate) fn open_path(shell: &mut Shell, path: &Path, encoding: Option<(Encodi
                     shell.tabs.push(tab);
                     shell.active = shell.tabs.len() - 1;
                 }
+                #[cfg(target_arch = "wasm32")]
+                OpenBehavior::NewWindow => {
+                    shell.tabs.push(tab);
+                    shell.active = shell.tabs.len() - 1;
+                }
+                #[cfg(not(target_arch = "wasm32"))]
                 OpenBehavior::NewWindow => {
                     // The window itself is opened by the eframe application at the
                     // end of this frame, from a request set here (`NC-F003`); the
@@ -931,15 +963,20 @@ pub fn answer_unrepresentable_save(shell: &mut Shell) {
     let Some(Prompt::Unrepresentable { tab, .. }) = shell.prompt.take() else {
         return;
     };
-    let name = shell
-        .tabs
-        .get(tab)
-        .map(|document| document.title())
-        .unwrap_or_default();
-    if shell.tabs[tab].file.save_lossy().is_ok() {
-        finish_save(shell, tab);
-    } else {
-        shell.notification = Some(format!("Could not save \"{name}\""));
+    #[cfg(target_arch = "wasm32")]
+    super::web::save(shell, tab, true);
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let name = shell
+            .tabs
+            .get(tab)
+            .map(|document| document.title())
+            .unwrap_or_default();
+        if shell.tabs[tab].file.save_lossy().is_ok() {
+            finish_save(shell, tab);
+        } else {
+            shell.notification = Some(format!("Could not save \"{name}\""));
+        }
     }
 }
 

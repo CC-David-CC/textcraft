@@ -70,6 +70,10 @@ pub fn dispatch(shell: &mut Shell, ctx: &Context) {
             let Some(spec) = nc_commands::by_id(id.as_str()) else {
                 return true;
             };
+            #[cfg(target_arch = "wasm32")]
+            if !super::web::command_available(id) {
+                return true;
+            }
             if !actions::handles(id) || !spec.is_available(context) {
                 return true;
             }

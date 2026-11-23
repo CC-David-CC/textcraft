@@ -12,6 +12,7 @@ use nc_commands::{CommandId, MenuItem, all_disabled, build_menu_bar, by_id};
 pub const HEIGHT: f32 = 46.0;
 
 /// Draws the top bar.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn show(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context) {
     ui.horizontal_centered(|ui| {
         let palette = shell.palette;
@@ -30,6 +31,35 @@ pub fn show(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context) {
         }
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             right_toolbar(shell, ui, ctx, palette);
+        });
+    });
+}
+
+/// Draws WebOS document commands above the tab strip.
+#[cfg(target_arch = "wasm32")]
+pub fn show(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context) {
+    ui.horizontal_centered(|ui| {
+        ui.add_space(10.0);
+        let palette = shell.palette;
+        for (label, command) in [
+            ("New", "cmd.file.new_tab"),
+            ("Open", "cmd.file.open"),
+            ("Save", "cmd.file.save"),
+        ] {
+            if ui.button(label).clicked() {
+                actions::run(shell, ctx, CommandId(command));
+            }
+        }
+        ui.separator();
+        menus(shell, ui, ctx, palette);
+        if shell.formatting {
+            ui.menu_button("Format", |ui| format_toolbar(shell, ui, ctx, palette));
+        }
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            ui.add_space(10.0);
+            if ui.button("Settings").clicked() {
+                actions::run(shell, ctx, CommandId("cmd.app.settings"));
+            }
         });
     });
 }
@@ -62,12 +92,15 @@ fn menu_items(
                 enabled,
                 checked,
             } => {
+                let available = *enabled;
+                #[cfg(target_arch = "wasm32")]
+                let available = available && super::web::command_available(spec.id);
                 if command_button(
                     ui,
                     spec.label,
                     *checked,
                     accelerator.as_deref(),
-                    *enabled,
+                    available,
                     palette,
                 ) {
                     actions::run(shell, ctx, spec.id);
@@ -136,7 +169,10 @@ fn recent_submenu(
                 .on_hover_text(path.display().to_string())
                 .clicked()
             {
+                #[cfg(not(target_arch = "wasm32"))]
                 actions::open_path(shell, path, None);
+                #[cfg(target_arch = "wasm32")]
+                super::web::reopen(path);
                 ui.close();
             }
         }
@@ -274,6 +310,7 @@ fn list_menu(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context) {
 }
 
 /// The sparkle / feedback / account / settings controls on the right.
+#[cfg(not(target_arch = "wasm32"))]
 fn right_toolbar(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context, palette: Palette) {
     let settings = widgets::icon_button(ui, "⚙").on_hover_text("Settings");
     a11y::label(&settings, WidgetType::Button, "Settings");
@@ -304,6 +341,7 @@ fn right_toolbar(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context, palette: P
 }
 
 /// The round account avatar.
+#[cfg(not(target_arch = "wasm32"))]
 fn avatar(ui: &mut egui::Ui, palette: Palette) {
     let (rect, response) = ui.allocate_exact_size(egui::vec2(26.0, 26.0), egui::Sense::click());
     a11y::label(&response, WidgetType::Button, "Account");

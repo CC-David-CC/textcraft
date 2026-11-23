@@ -4,6 +4,7 @@
 //! Verbosity is controlled by the `NOTEPAD_LOG` environment variable using the
 //! standard `EnvFilter` directive syntax, defaulting to `info`.
 
+#[cfg(not(target_arch = "wasm32"))]
 use tracing_subscriber::EnvFilter;
 
 /// Environment variable that overrides the default log filter.
@@ -11,6 +12,7 @@ pub const LOG_ENV: &str = "NOTEPAD_LOG";
 
 /// Install the global tracing subscriber. Idempotent: a second call is ignored
 /// because the global subscriber can only be set once per process.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn init() {
     let filter = EnvFilter::try_from_env(LOG_ENV).unwrap_or_else(|_| EnvFilter::new("info"));
     let _ = tracing_subscriber::fmt()
@@ -18,3 +20,7 @@ pub fn init() {
         .with_writer(std::io::stderr)
         .try_init();
 }
+
+// The WebOS build does not create a native log.
+#[cfg(target_arch = "wasm32")]
+pub fn init() {}

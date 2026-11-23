@@ -10,6 +10,7 @@
 # Target platforms are managed explicitly (`rustup target add <triple>`) rather
 # than listed here, so a checkout only fetches the targets it actually needs.
 [toolchain]
+targets = ["wasm32-unknown-unknown"]
 channel = "stable"
 components = ["rustfmt", "clippy"]
 profile = "minimal"

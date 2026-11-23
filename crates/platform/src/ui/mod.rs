@@ -125,6 +125,9 @@ struct ShellApp {
 impl eframe::App for ShellApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         draw(&mut self.shell, ui);
+        // Playground's browser build: what came in and the unsaved state (patches/notepad.yaml).
+        #[cfg(target_arch = "wasm32")]
+        web::frame(&mut self.shell, ui.ctx());
         // A New window command takes effect at the end of the frame: the window
         // is created and drawn right away, and stays alive by being shown each
         // frame after that.
@@ -151,7 +154,13 @@ pub(crate) fn draw(shell: &mut Shell, ui: &mut egui::Ui) {
 
     // Accelerators are read before anything is drawn, so a command that opens a
     // dialog or moves the caret is reflected in this frame.
-    input::dispatch(shell, &ctx);
+    #[cfg(target_arch = "wasm32")]
+    if web::busy() {
+        ui.disable();
+    }
+    if ui.is_enabled() {
+        input::dispatch(shell, &ctx);
+    }
 
     // Then the palette, so a theme chosen in Settings — or a system that changes
     // under a shell set to follow it — is in force for everything drawn below,
@@ -164,6 +173,7 @@ pub(crate) fn draw(shell: &mut Shell, ui: &mut egui::Ui) {
     // atlas, so this is called once per frame and does nothing unless the choice moved.
     fonts::apply(&ctx, shell.font_family);
 
+    #[cfg(not(target_arch = "wasm32"))]
     title_bar::show(shell, ui, &ctx);
 
     egui::Panel::top("top_bar")
@@ -172,6 +182,9 @@ pub(crate) fn draw(shell: &mut Shell, ui: &mut egui::Ui) {
         .show(ui, |ui| {
             menu_bar::show(shell, ui, &ctx);
         });
+
+    #[cfg(target_arch = "wasm32")]
+    title_bar::show(shell, ui, &ctx);
 
     if shell.status_bar_visible && !shell.show_settings {
         status_bar::show(shell, ui);
@@ -516,3 +529,9 @@ mod tests {
         assert_eq!(shell.tabs.len(), 1, "no tab was opened");
     }
 }
+
+// Playground's browser build: the page (ui/web.rs), whose eframe starts the app on the canvas (patches/notepad.yaml).
+#[cfg(target_arch = "wasm32")]
+mod web;
+#[cfg(target_arch = "wasm32")]
+use web::eframe;

@@ -1,14 +1,17 @@
 //! The title bar: app icon, tab strip, new-tab button, and window controls.
 
 use egui::accesskit::Role;
-use egui::{
-    Align, Align2, Context, CornerRadius, FontId, Layout, Sense, Stroke, ViewportCommand,
-    WidgetType,
-};
+#[cfg(not(target_arch = "wasm32"))]
+use egui::{Align, Layout, ViewportCommand};
+use egui::{Align2, Context, CornerRadius, FontId, Sense, Stroke, WidgetType};
 
-use crate::ui::state::{DocKind, Shell, Tab};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::ui::state::DocKind;
+use crate::ui::state::{Shell, Tab};
 use crate::ui::theme::Palette;
-use crate::ui::{a11y, actions, menu_bar, widgets};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::ui::widgets;
+use crate::ui::{a11y, actions, menu_bar};
 use nc_commands::{CommandId, MenuItem, build_tab_context_menu};
 
 /// The height of the title bar, in points.
@@ -37,10 +40,13 @@ pub fn show(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context) {
             // `Sense::DRAG` rather than `click_and_drag`: a click that drags nothing
             // is not something this bar does, and the click sense would put the
             // whole title bar in the tab order as an unnamed stop (`NC-P007`).
-            let bar = ui.max_rect();
-            let drag = ui.interact(bar, ui.id().with("title_drag"), Sense::DRAG);
-            if drag.drag_started() {
-                ctx.send_viewport_cmd(ViewportCommand::StartDrag);
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let bar = ui.max_rect();
+                let drag = ui.interact(bar, ui.id().with("title_drag"), Sense::DRAG);
+                if drag.drag_started() {
+                    ctx.send_viewport_cmd(ViewportCommand::StartDrag);
+                }
             }
 
             let mut to_activate: Option<usize> = None;
@@ -54,15 +60,15 @@ pub fn show(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context) {
 
             let palette = shell.palette;
             ui.horizontal_centered(|ui| {
-                app_icon(ui, palette);
-                // Captured, and inert in this build: there is nowhere to go back
-                // to. It is named and announced as unavailable rather than left
-                // out, so the screen a reader is told about is the one that is
-                // drawn (`NC-P007`, `docs/ui-reference.md` §13).
-                let back = widgets::icon_button(ui, "‹");
-                a11y::label(&back, WidgetType::Button, "Back");
-                a11y::inert(ui.ctx(), back.id);
-                ui.add_space(2.0);
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    app_icon(ui, palette);
+                    // The inactive Back button is part of the native chrome.
+                    let back = widgets::icon_button(ui, "‹");
+                    a11y::label(&back, WidgetType::Button, "Back");
+                    a11y::inert(ui.ctx(), back.id);
+                    ui.add_space(2.0);
+                }
 
                 egui::ScrollArea::horizontal()
                     .id_salt("tabs")
@@ -93,16 +99,19 @@ pub fn show(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context) {
                         });
                     });
 
-                let new_tab = widgets::icon_button(ui, "+");
-                a11y::label(&new_tab, WidgetType::Button, "New tab");
-                if new_tab.clicked() {
-                    shell.open_tab(DocKind::Plain);
-                }
-                new_tab.on_hover_text("New tab");
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    let new_tab = widgets::icon_button(ui, "+");
+                    a11y::label(&new_tab, WidgetType::Button, "New tab");
+                    if new_tab.clicked() {
+                        shell.open_tab(DocKind::Plain);
+                    }
+                    new_tab.on_hover_text("New tab");
 
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    window_controls(ui, ctx, shell);
-                });
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        window_controls(ui, ctx, shell);
+                    });
+                }
             });
 
             if let Some(index) = to_activate {
@@ -118,6 +127,7 @@ pub fn show(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context) {
 }
 
 /// The three window buttons, right to left.
+#[cfg(not(target_arch = "wasm32"))]
 fn window_controls(ui: &mut egui::Ui, ctx: &Context, shell: &mut Shell) {
     let close = widgets::icon_button(ui, "✕");
     a11y::label(&close, WidgetType::Button, "Close window");
@@ -148,6 +158,7 @@ fn window_controls(ui: &mut egui::Ui, ctx: &Context, shell: &mut Shell) {
 }
 
 /// A small blue app icon.
+#[cfg(not(target_arch = "wasm32"))]
 fn app_icon(ui: &mut egui::Ui, palette: Palette) {
     let (rect, _) = ui.allocate_exact_size(egui::vec2(22.0, 22.0), Sense::hover());
     let painter = ui.painter();
@@ -260,7 +271,11 @@ fn tab_widget(
         painter.text(
             close_rect.center(),
             Align2::CENTER_CENTER,
-            "✕",
+            if cfg!(target_arch = "wasm32") {
+                "×"
+            } else {
+                "✕"
+            },
             FontId::proportional(11.0),
             palette.text_dim,
         );

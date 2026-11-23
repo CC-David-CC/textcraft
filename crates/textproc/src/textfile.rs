@@ -8,7 +8,11 @@
 //! (`docs/ui-reference.md`, NC-D004).
 
 use std::ffi::OsString;
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs;
+// Playground's browser build: the files (patches/notepad.yaml).
+#[cfg(target_arch = "wasm32")]
+use notepad_playground::fs;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
@@ -417,6 +421,26 @@ impl TextFile {
         Ok(saved)
     }
 
+    /// Updates the editable document after the browser workspace has confirmed the write.
+    #[cfg(target_arch = "wasm32")]
+    pub fn record_workspace_write(
+        &mut self,
+        path: PathBuf,
+        encoding: Encoding,
+        bom: bool,
+        bytes: Vec<u8>,
+        snapshot: &str,
+    ) {
+        self.path = path;
+        self.detection = Detection::chosen(encoding, bom);
+        if self.document.save_text() == snapshot {
+            self.write_bookkeeping(bytes);
+        } else {
+            self.on_disk = Some(bytes);
+            self.document.mark_dirty();
+        }
+    }
+
     /// Records a successful write: the bytes are what is on disk now.
     fn write_bookkeeping(&mut self, bytes: Vec<u8>) {
         self.on_disk = Some(bytes);
@@ -437,6 +461,18 @@ impl Default for TextFile {
 /// cannot be replaced (read-only, or a directory that is not there) is refused
 /// before anything is written, leaving it exactly as it was.
 fn write_atomic(path: &Path, bytes: &[u8]) -> Result<Saved> {
+    // Playground's browser build: the in-memory files have no temporary file to rename (patches/notepad.yaml).
+    #[cfg(target_arch = "wasm32")]
+    {
+        fs::write(path, bytes).map_err(|source| Error::Write {
+            path: path.to_path_buf(),
+            source,
+        })?;
+        return Ok(Saved {
+            path: path.to_path_buf(),
+            bytes: bytes.len(),
+        });
+    }
     let error = |source: std::io::Error| Error::Write {
         path: path.to_path_buf(),
         source,

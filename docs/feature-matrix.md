@@ -649,3 +649,15 @@ their test.
 > capture to localize against. Still ahead: the visual criteria await a display.
 > The tab context menu no longer awaits anything: §3 let the item set be decided
 > and recorded, and it is (`NC-T003`).
+
+## WebOS browser verification
+
+The WebOS browser edition exercises NC-F004, NC-F005, NC-F006, NC-D005 and
+NC-D006 through the signed-in and guest Files interfaces. Chromium opened
+an editable UTF-8 BOM and CRLF text file and an LF Markdown document,
+saved and reopened both, and saved another edit. The signed-in run kept
+both the competing revision and the edited Save As copy. Cancelling a
+dirty window close preserved the editor.
+
+The browser Save As picker keeps the current encoding. The browser uses
+the WebOS window controls and disables native New Window and printing.

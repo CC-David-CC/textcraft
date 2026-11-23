@@ -579,6 +579,10 @@ pub enum Prompt {
 pub struct Tab {
     /// The file: its path, encoding, bytes, text, and undo history.
     pub file: TextFile,
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) workspace_id: u64,
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) workspace_revision: Option<String>,
     /// Whether the document is plain text or Markdown.
     pub kind: DocKind,
     /// The paragraph style selected in the toolbar.
@@ -608,6 +612,10 @@ impl Tab {
             formatted: false,
             spellings: Vec::new(),
             spellings_source: 0,
+            #[cfg(target_arch = "wasm32")]
+            workspace_id: super::web::next_document_id(),
+            #[cfg(target_arch = "wasm32")]
+            workspace_revision: None,
         }
     }
 
@@ -624,6 +632,10 @@ impl Tab {
             formatted: false,
             spellings: Vec::new(),
             spellings_source: 0,
+            #[cfg(target_arch = "wasm32")]
+            workspace_id: super::web::next_document_id(),
+            #[cfg(target_arch = "wasm32")]
+            workspace_revision: None,
         }
     }
 
@@ -642,6 +654,10 @@ impl Tab {
             formatted: false,
             spellings: Vec::new(),
             spellings_source: 0,
+            #[cfg(target_arch = "wasm32")]
+            workspace_id: super::web::next_document_id(),
+            #[cfg(target_arch = "wasm32")]
+            workspace_revision: None,
         })
     }
 
@@ -665,6 +681,10 @@ impl Tab {
             formatted: false,
             spellings: Vec::new(),
             spellings_source: 0,
+            #[cfg(target_arch = "wasm32")]
+            workspace_id: super::web::next_document_id(),
+            #[cfg(target_arch = "wasm32")]
+            workspace_revision: None,
         })
     }
 
@@ -679,6 +699,10 @@ impl Tab {
             formatted: false,
             spellings: Vec::new(),
             spellings_source: 0,
+            #[cfg(target_arch = "wasm32")]
+            workspace_id: super::web::next_document_id(),
+            #[cfg(target_arch = "wasm32")]
+            workspace_revision: None,
         }
     }
 

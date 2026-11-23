@@ -106,7 +106,7 @@ impl Palette {
     /// means exactly what it says, which is the difference the reference's three
     /// choices exist to express.
     pub fn for_choice(choice: AppTheme, system: Option<Theme>) -> Palette {
-        match choice {
+        let palette = match choice {
             AppTheme::Light => Self::LIGHT,
             AppTheme::Dark => Self::DARK,
             AppTheme::System => match system {
@@ -116,6 +116,39 @@ impl Palette {
                 // something, and the look to hold it at is the captured one.
                 Some(Theme::Dark) | None => Self::DARK,
             },
+        };
+        #[cfg(target_arch = "wasm32")]
+        let palette = palette.workspace_colors();
+        palette
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn workspace_colors(self) -> Self {
+        if self.dark {
+            Self {
+                bg: Color32::from_rgb(16, 26, 36),
+                chrome: Color32::from_rgb(29, 49, 65),
+                card: Color32::from_rgb(26, 42, 55),
+                row_hover: Color32::from_rgb(37, 60, 78),
+                hover: Color32::from_rgb(44, 72, 92),
+                active: Color32::from_rgb(53, 83, 101),
+                text_dim: Color32::from_rgb(166, 190, 202),
+                border: Color32::from_rgb(58, 83, 101),
+                accent: Color32::from_rgb(117, 228, 192),
+                accent_soft: Color32::from_rgb(36, 102, 92),
+                ..self
+            }
+        } else {
+            Self {
+                bg: Color32::from_rgb(248, 252, 252),
+                chrome: Color32::from_rgb(224, 240, 241),
+                card: Color32::from_rgb(233, 246, 245),
+                row_hover: Color32::from_rgb(209, 232, 232),
+                border: Color32::from_rgb(175, 207, 209),
+                accent: Color32::from_rgb(0, 108, 92),
+                accent_soft: Color32::from_rgb(182, 225, 213),
+                ..self
+            }
         }
     }
 }

@@ -1882,12 +1882,19 @@ version = "0.0.0"
 dependencies = [
  "eframe",
  "egui",
+ "js-sys",
  "nc-commands",
  "nc-core",
  "nc-markdown",
  "nc-textproc",
+ "notepad-playground",
  "thiserror 2.0.21",
  "tracing",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "web-time",
+ "wgpu",
 ]
 
 [[package]]
@@ -1895,6 +1902,7 @@ name = "nc-textproc"
 version = "0.0.0"
 dependencies = [
  "nc-core",
+ "notepad-playground",
  "proptest",
  "thiserror 2.0.21",
 ]
@@ -1934,6 +1942,14 @@ name = "nohash-hasher"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
+
+[[package]]
+name = "notepad-playground"
+version = "0.1.0"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "nu-ansi-term"

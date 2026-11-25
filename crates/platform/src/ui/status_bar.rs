@@ -1,8 +1,11 @@
 //! The status bar: caret position, character count, document kind, zoom,
 //! line-ending style, and encoding.
 
-use egui::{Align, Align2, FontId, Layout, RichText};
+use egui::RichText;
+#[cfg(not(target_arch = "wasm32"))]
+use egui::{Align, Align2, FontId, Layout};
 
+#[cfg(not(target_arch = "wasm32"))]
 use crate::ui::a11y;
 use crate::ui::state::Shell;
 use crate::ui::theme::Palette;
@@ -10,7 +13,8 @@ use crate::ui::theme::Palette;
 /// The height of the status bar, in points.
 pub const HEIGHT: f32 = 28.0;
 
-/// Draws the status bar.
+/// Draws the native status bar.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn show(shell: &Shell, ui: &mut egui::Ui) {
     egui::Panel::bottom("status_bar")
         .exact_size(HEIGHT)
@@ -68,6 +72,47 @@ pub fn show(shell: &Shell, ui: &mut egui::Ui) {
                 FontId::proportional(12.0),
                 shell.palette.text_dim,
             );
+        });
+}
+
+/// Let the document information flow into additional rows as the window narrows.
+#[cfg(target_arch = "wasm32")]
+pub fn show(shell: &Shell, ui: &mut egui::Ui) {
+    let palette = shell.palette;
+    let tab = shell.active_tab();
+    egui::Panel::bottom("status_bar")
+        .resizable(false)
+        .min_size(HEIGHT)
+        .frame(
+            egui::Frame::NONE
+                .fill(palette.chrome)
+                .inner_margin(egui::Margin::symmetric(8, 4)),
+        )
+        .show(ui, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(item(
+                    format!("Ln {}, Col {}", shell.line, shell.column),
+                    palette,
+                ));
+                ui.label(item(format!("{} characters", shell.char_count()), palette));
+                ui.label(item(
+                    tab.map(|tab| tab.kind_label()).unwrap_or("Plain text"),
+                    palette,
+                ));
+                ui.label(item(format!("{}%", shell.zoom), palette));
+                ui.label(item(
+                    tab.map(|tab| tab.line_ending_label())
+                        .unwrap_or("Windows (CRLF)"),
+                    palette,
+                ));
+                ui.label(item(
+                    tab.map(|tab| tab.encoding_label()).unwrap_or("UTF-8"),
+                    palette,
+                ));
+                if let Some(note) = &shell.notification {
+                    ui.label(RichText::new(note).size(12.0).color(palette.text));
+                }
+            });
         });
 }
 

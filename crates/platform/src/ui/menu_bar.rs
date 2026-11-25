@@ -1,7 +1,9 @@
 //! The top bar: the `File`/`Edit`/`View` menus, the formatting toolbar, and the
 //! account / settings controls.
 
-use egui::{Align, Context, Layout, RichText, WidgetType};
+#[cfg(not(target_arch = "wasm32"))]
+use egui::{Align, Layout};
+use egui::{Context, RichText, WidgetType};
 
 use crate::ui::state::{ParagraphStyle, Shell};
 use crate::ui::theme::Palette;
@@ -38,9 +40,9 @@ pub fn show(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context) {
 /// Draws WebOS document commands above the tab strip.
 #[cfg(target_arch = "wasm32")]
 pub fn show(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context) {
-    ui.horizontal_centered(|ui| {
-        ui.add_space(10.0);
-        let palette = shell.palette;
+    let palette = shell.palette;
+    ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().interact_size.y = 40.0;
         for (label, command) in [
             ("New", "cmd.file.new_tab"),
             ("Open", "cmd.file.open"),
@@ -50,17 +52,13 @@ pub fn show(shell: &mut Shell, ui: &mut egui::Ui, ctx: &Context) {
                 actions::run(shell, ctx, CommandId(command));
             }
         }
-        ui.separator();
         menus(shell, ui, ctx, palette);
         if shell.formatting {
             ui.menu_button("Format", |ui| format_toolbar(shell, ui, ctx, palette));
         }
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            ui.add_space(10.0);
-            if ui.button("Settings").clicked() {
-                actions::run(shell, ctx, CommandId("cmd.app.settings"));
-            }
-        });
+        if ui.button("Settings").clicked() {
+            actions::run(shell, ctx, CommandId("cmd.app.settings"));
+        }
     });
 }
 

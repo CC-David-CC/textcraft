@@ -9,17 +9,28 @@ use crate::ui::{a11y, theme::Palette, widgets};
 
 /// Draws the settings page.
 pub fn show(shell: &mut Shell, ui: &mut egui::Ui) {
+    let margin = Margin::symmetric(30, 16);
+    #[cfg(target_arch = "wasm32")]
+    let margin = if ui.available_width() < 600.0 {
+        Margin::symmetric(12, 16)
+    } else {
+        margin
+    };
     egui::CentralPanel::no_frame()
-        .frame(
-            Frame::NONE
-                .fill(shell.palette.bg)
-                .inner_margin(Margin::symmetric(30, 16)),
-        )
+        .frame(Frame::NONE.fill(shell.palette.bg).inner_margin(margin))
         .show(ui, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 let palette = shell.palette;
                 ui.label(RichText::new("Settings").size(32.0).color(palette.text));
                 ui.add_space(16.0);
+
+                #[cfg(target_arch = "wasm32")]
+                if ui.available_width() < 540.0 {
+                    settings_column(shell, ui, palette);
+                    ui.add_space(16.0);
+                    about_column(ui, palette);
+                    return;
+                }
 
                 ui.horizontal_top(|ui| {
                     let total = ui.available_width();
@@ -146,16 +157,21 @@ fn row(
     subtitle: Option<&str>,
     control: impl FnOnce(&mut egui::Ui),
 ) {
+    let describe = |ui: &mut egui::Ui| {
+        ui.label(RichText::new(title).size(14.0).color(palette.text));
+        if let Some(subtitle) = subtitle {
+            ui.label(RichText::new(subtitle).size(12.0).color(palette.text_dim));
+        }
+    };
+    #[cfg(target_arch = "wasm32")]
+    if ui.available_width() < 360.0 {
+        describe(ui);
+        ui.horizontal(control);
+        return;
+    }
     ui.horizontal(|ui| {
-        ui.vertical(|ui| {
-            ui.label(RichText::new(title).size(14.0).color(palette.text));
-            if let Some(subtitle) = subtitle {
-                ui.label(RichText::new(subtitle).size(12.0).color(palette.text_dim));
-            }
-        });
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            control(ui);
-        });
+        ui.vertical(describe);
+        ui.with_layout(Layout::right_to_left(Align::Center), control);
     });
 }
 

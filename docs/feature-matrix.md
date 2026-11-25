@@ -661,3 +661,10 @@ dirty window close preserved the editor.
 
 The browser Save As picker keeps the current encoding. The browser uses
 the WebOS window controls and disables native New Window and printing.
+
+The browser layout extends NC-P001, NC-P005, NC-P006 and NC-P007 to narrow
+WebOS windows. The command row wraps New, Open, Save, File, Edit, View,
+Format when enabled, and Settings. The status fields wrap with the editor
+width. Settings puts its controls below their labels and its About section
+below the settings on narrow screens. The app keeps the same command registry,
+keyboard shortcuts, settings state and file format handling at each width.

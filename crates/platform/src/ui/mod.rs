@@ -176,12 +176,17 @@ pub(crate) fn draw(shell: &mut Shell, ui: &mut egui::Ui) {
     #[cfg(not(target_arch = "wasm32"))]
     title_bar::show(shell, ui, &ctx);
 
-    egui::Panel::top("top_bar")
-        .exact_size(menu_bar::HEIGHT)
-        .frame(egui::Frame::NONE.fill(shell.palette.chrome))
-        .show(ui, |ui| {
-            menu_bar::show(shell, ui, &ctx);
-        });
+    let top_bar = egui::Panel::top("top_bar");
+    #[cfg(not(target_arch = "wasm32"))]
+    let top_bar = top_bar.exact_size(menu_bar::HEIGHT);
+    #[cfg(target_arch = "wasm32")]
+    let top_bar = top_bar.resizable(false).min_size(menu_bar::HEIGHT);
+    let frame = egui::Frame::NONE.fill(shell.palette.chrome);
+    #[cfg(target_arch = "wasm32")]
+    let frame = frame.inner_margin(egui::Margin::symmetric(8, 4));
+    top_bar.frame(frame).show(ui, |ui| {
+        menu_bar::show(shell, ui, &ctx);
+    });
 
     #[cfg(target_arch = "wasm32")]
     title_bar::show(shell, ui, &ctx);

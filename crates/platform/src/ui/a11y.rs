@@ -80,6 +80,7 @@ pub fn inert(ctx: &Context, id: Id) {
 ///
 /// A painted string has no widget behind it, so nothing is announced for it; the
 /// status bar's document kind is one.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn painted(ctx: &Context, id: Id, rect: Rect, text: impl Into<Box<str>>) {
     ctx.accesskit_node_builder(id, |node| {
         node.set_role(Role::Label);

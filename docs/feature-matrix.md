@@ -668,3 +668,8 @@ Format when enabled, and Settings. The status fields wrap with the editor
 width. Settings puts its controls below their labels and its About section
 below the settings on narrow screens. The app keeps the same command registry,
 keyboard shortcuts, settings state and file format handling at each width.
+
+The Galaxy S10+ walkthrough replays text and Markdown Saves and fresh
+sign-in opens, checks the original bytes after both saves, and covers
+the formatted Markdown view and a UTF-16 LE / CRLF fixture.
+[Physical phone evidence](webos-qa/PHONE.md)
